@@ -1,5 +1,5 @@
 Vagrant.configure(2) do |config|
-  config.vm.box = "centos/7"
+  config.vm.box = "generic/centos7"
   config.vm.provider "virtualbox" do |vb|
      vb.gui = false
      vb.memory = "4096"
