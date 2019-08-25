@@ -1,5 +1,5 @@
 $pack_pip = [ 'psycopg2', 'virtualenv' ]
-$pack = [ 'git', 'python-pip', 'nginx', 'uwsgi', 'ansible', 'uwsgi-plugin-python2', 'python-virtualenv', 'python', 'python-devel', 'gcc', 'postgresql-devel' ]
+$pack = [ 'git', 'python-pip', 'nginx', 'ansible', 'nano', 'uwsgi-plugin-python2', 'python-virtualenv', 'python', 'python-devel', 'gcc', 'postgresql-devel' ]
 class { 'postgresql::globals':
   manage_package_repo => true,
   version             => '9.6',
@@ -9,9 +9,11 @@ class { 'postgresql::server':
   manage_pg_hba_conf => true, 
 pg_hba_conf_defaults => false,
 }
-
+exec {'setenforce 0':
+   path => ['/usr/sbin/'],
+}
 postgresql::server::pg_hba_rule { 'allow application network to access app database':
-  description => 'Open up PostgreSQL for access from 192.168.88.0/24',
+  description => 'Open up PostgreSQL for access',
   type        => 'local',
   database    => 'all',
   user        => 'all',
@@ -63,7 +65,7 @@ package { $pack_pip:
   provider => 'pip',
 }
 package { 'django':
-  require  => Package[$pack],
-  ensure   => latest,
+  require  => Package['setuptools'],
+  ensure   => installed,
   provider => 'pip',
 }

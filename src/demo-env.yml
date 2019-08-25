@@ -1,0 +1,120 @@
+---
+- hosts: 127.0.0.1
+  user: vagrant
+  tasks:
+    - name: Create venv
+      command: virtualenv /home/vagrant/project
+    - name: Git clone
+      command: git clone https://github.com/elDante/demo.git /home/vagrant/project/demo
+    - name: Copy files
+      copy:
+        src: /home/vagrant/project/demo/demo/settings_local.example.py
+        dest: /home/vagrant/project/demo/demo/settings_local.py
+    - name: Fill in dbname
+      replace:
+        path: /home/vagrant/project/demo/demo/settings_local.py
+        regexp: "'NAME': ''"
+        replace: "'NAME': 'askbot'"
+    - name: Fill in host
+      replace:
+        path: /home/vagrant/project/demo/demo/settings_local.py
+        regexp: "'HOST':  ''"
+        replace: "'HOST':  '127.0.0.1'"
+    - name: Fill in user
+      replace:
+        path: /home/vagrant/project/demo/demo/settings_local.py
+        regexp: "'USER': ''"
+        replace: "'USER': 'ask_user'"
+    - name: Fill in password
+      replace:
+        path: /home/vagrant/project/demo/demo/settings_local.py
+        regexp: "'PASSWORD': ''"
+        replace: "'PASSWORD': '123456'"
+    - name: Create static directory
+      file:
+        path: /home/vagrant/project/demo/demo/static
+        state: directory
+    - name: Install requirements
+      pip:
+        requirements: /home/vagrant/project/demo/requirements.txt
+        virtualenv: /home/vagrant/project
+    - name: Install uwsgi
+      pip:
+        name: uwsgi
+        virtualenv: /home/vagrant/project
+        virtualenv_command: install
+    - name: Migrate DB
+      django_manage:
+        command: migrate
+        virtualenv: /home/vagrant/project
+        app_path: /home/vagrant/project/demo
+    - name: Collectstatic
+      django_manage:
+        command: collectstatic
+        virtualenv: /home/vagrant/project
+        app_path: /home/vagrant/project/demo
+    - name: Edit setting.py
+      lineinfile:
+        path: /home/vagrant/project/demo/demo/settings.py
+        regexp: '^ALLOWED_HOSTS ='
+        line: ALLOWED_HOSTS = ['*']
+    - name: Disable Selinux
+      replace:
+        path: /etc/selinux/config
+        regexp: 'SELINUX=enforcing'
+        replace: 'SELINUX=disabled'
+      become: yes
+    - name: Stopped firewalld
+      service:
+        name: firewalld
+        state: stopped
+        enabled: no
+      become: yes
+    - name: Create src dir#
+      file:
+        path: /src
+        state: directory
+        owner: root
+        group: root
+        mode: 0644
+      become: yes
+    - name: Copy ini
+      copy:
+        src: /home/vagrant/deploy/demo.ini
+        dest: /src/demo.ini
+        owner: root
+        group: root
+        mode: '0644'
+      become: yes
+    - name: Copy conf
+      copy:
+        src: /home/vagrant/deploy/demo.conf
+        dest: /etc/nginx/conf.d/demo.conf
+        owner: root
+        group: root
+        mode: '0644'
+      become: yes
+    - name: Copy uwsgi.service
+      copy:
+        src: /home/vagrant/deploy/uwsgi.service
+        dest: /etc/systemd/system/uwsgi.service
+        owner: root
+        group: root
+        mode: '0644'
+      become: yes
+    - name: Reload systemd
+      systemd:
+        daemon_reload: yes
+      become: yes
+    - name: Service Uwsgi
+      service:
+        name: uwsgi
+        enabled: yes
+        state: started
+      become: yes
+    - name: Service Nginx
+      service:
+        name: nginx
+        enabled: yes
+        state: started
+      become: yes
