@@ -7,9 +7,9 @@ Vagrant.configure(2) do |config|
   end
   config.vm.box_check_update = false
   config.vm.hostname = "testtask"  
+###  config.vm.network "public_network"
   config.vm.network "private_network", ip: "192.168.88.200",
-    virtualbox__hostonly: true
-###  config.vm.network "public_network", ip: "192.168.88.200"
+  virtualbox__hostonly: true
   config.vm.define "testtask"
   config.vm.synced_folder "src/", "/home/vagrant/deploy"
   config.vm.provision :"shell", path: "installpuppet.sh"

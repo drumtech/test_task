@@ -2,14 +2,35 @@
 - hosts: 127.0.0.1
   user: vagrant
   tasks:
+    - name: Add group web
+      group:
+        name: web
+        state: present
+      become: yes
+    - name: Add nginx to web
+      user:
+        name: nginx
+        groups: web
+        append: yes
+      become: yes
+    - name: Add vagrant to web
+      user:
+        name: vagrant
+        groups: web
+        append: yes
+      become: yes
     - name: Create venv
       command: virtualenv /home/vagrant/project
     - name: Git clone
       command: git clone https://github.com/elDante/demo.git /home/vagrant/project/demo
-    - name: Copy files
+    - name: Copy files settings_local
       copy:
         src: /home/vagrant/project/demo/demo/settings_local.example.py
         dest: /home/vagrant/project/demo/demo/settings_local.py
+##    - name: Copy files settings.py
+##      copy:
+##        src: /home/vagrant/deploy/settings.py
+##        dest: /home/vagrant/project/demo/demo/settings.py
     - name: Fill in dbname
       replace:
         path: /home/vagrant/project/demo/demo/settings_local.py
@@ -30,6 +51,40 @@
         path: /home/vagrant/project/demo/demo/settings_local.py
         regexp: "'PASSWORD': ''"
         replace: "'PASSWORD': '123456'"
+    - name: Change DATA_DIR media
+      lineinfile:
+        path: /home/vagrant/project/demo/demo/settings.py
+        regexp: '^MEDIA_ROOT ='
+        line: MEDIA_ROOT = '/public/media'
+    - name: Change DATA_DIR media
+      lineinfile:
+        path: /home/vagrant/project/demo/demo/settings.py
+        regexp: '^STATIC_ROOT ='
+        line: STATIC_ROOT = '/public/static'
+    - name: Create public directory
+      file:
+        path: /public
+        state: directory
+        owner: nginx
+        group: web
+        mode: 0775
+      become: yes
+    - name: Create static directory
+      file:
+        path: /public/static
+        state: directory
+        owner: vagrant
+        group: nginx
+        mode: 0775
+      become: yes
+    - name: Create media directory
+      file:
+        path: /public/media
+        state: directory
+        owner: vagrant
+        group: nginx
+        mode: 0775
+      become: yes
     - name: Create static directory
       file:
         path: /home/vagrant/project/demo/demo/static
@@ -93,6 +148,14 @@
         owner: root
         group: root
         mode: '0644'
+      become: yes
+    - name: Copy png
+      copy:
+        src: /home/vagrant/deploy/demo.png
+        dest: /public/media/demo.png
+        owner: vagrant
+        group: nginx
+        mode: '0665'
       become: yes
     - name: Copy uwsgi.service
       copy:
